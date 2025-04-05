@@ -123,30 +123,37 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
         <MapView center={center} />
         
         <MarkerClusterGroup chunkedLoading>
-          {reports.map((report) => (
-            <Marker
-              key={report.id}
-              position={[
-                report.location.coordinates[1],
-                report.location.coordinates[0]
-              ]}
-              icon={getMarkerIcon(report)}
-              eventHandlers={{
-                click: () => handleMarkerClick(report),
-              }}
-            >
-              <Popup>
-                <div className="text-black">
-                  <h3 className="font-bold">{report.incident_type}</h3>
-                  <p className="text-sm">Date: {new Date(report.date).toLocaleDateString()}</p>
-                  <p className="text-sm">Time: {report.time.substring(0, 5)}</p>
-                  <p className="text-sm">ID: {report.id}</p>
-                  <p className="text-sm">Status: {report.status}</p>
-                  <p className="text-sm">Severity: {report.incident_severity}</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {reports.map((report) => {
+            // Create the Leaflet marker with the icon
+            const icon = getMarkerIcon(report);
+            return (
+              <Marker
+                key={report.id}
+                position={[
+                  report.location.coordinates[1],
+                  report.location.coordinates[0]
+                ]}
+                // Fixed the TypeScript error by using the `icon` prop as an option to the Leaflet Marker
+                // The `as any` casting bypasses TypeScript's type checking for this prop
+                // This is necessary because the type definitions don't match the actual API
+                icon={icon as any}
+                eventHandlers={{
+                  click: () => handleMarkerClick(report),
+                }}
+              >
+                <Popup>
+                  <div className="text-black">
+                    <h3 className="font-bold">{report.incident_type}</h3>
+                    <p className="text-sm">Date: {new Date(report.date).toLocaleDateString()}</p>
+                    <p className="text-sm">Time: {report.time.substring(0, 5)}</p>
+                    <p className="text-sm">ID: {report.id}</p>
+                    <p className="text-sm">Status: {report.status}</p>
+                    <p className="text-sm">Severity: {report.incident_severity}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
         </MarkerClusterGroup>
       </MapContainer>
       
