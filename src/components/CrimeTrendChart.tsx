@@ -1,13 +1,12 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getReportsByDate, CrimeReport } from '@/utils/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 
 interface CrimeTrendChartProps {
@@ -16,7 +15,7 @@ interface CrimeTrendChartProps {
 }
 
 const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className }) => {
-  // State for filters
+  // State for filters and data
   const [timeFrame, setTimeFrame] = useState<'day' | 'week' | 'month'>('day');
   const [selectedIncidentTypes, setSelectedIncidentTypes] = useState<string[]>([]);
   const [selectedSeverity, setSelectedSeverity] = useState<string>('');
@@ -24,10 +23,34 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
     from: undefined,
     to: undefined,
   });
+  const [chartData, setChartData] = useState<{ date: string; count: number }[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // Get unique incident types
   const incidentTypes = Array.from(new Set(reports.map(report => report.incident_type)));
   const severityLevels = ['Low', 'Medium', 'High', 'Critical'];
+
+  // Fetch data when filters change
+  useEffect(() => {
+    const fetchData = async () => {
+      console.log('[CrimeTrendChart] Starting to fetch data with timeFrame:', timeFrame);
+      setLoading(true);
+      try {
+        console.log('[CrimeTrendChart] Calling getReportsByDate');
+        const data = await getReportsByDate(timeFrame);
+        console.log('[CrimeTrendChart] Data received from getReportsByDate:', data);
+        setChartData(data || []);
+      } catch (error) {
+        console.error("[CrimeTrendChart] Failed to fetch chart data:", error);
+        setChartData([]);
+      } finally {
+        setLoading(false);
+        console.log('[CrimeTrendChart] Updated chart data state. Loading set to false');
+      }
+    };
+
+    fetchData();
+  }, [timeFrame]);
 
   // Filter reports based on selected filters
   const filteredReports = reports.filter(report => {
@@ -37,7 +60,7 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
     }
 
     // Filter by severity
-    if (selectedSeverity && report.incident_severity !== selectedSeverity) {
+    if (selectedSeverity && report.severity !== selectedSeverity) {
       return false;
     }
 
@@ -59,32 +82,24 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
     return true;
   });
 
-  // Process data based on the selected time frame
-  const chartData = getReportsByDate(filteredReports, timeFrame);
-
   // Format the date display based on the selected time frame
   const formatDateDisplay = (dateStr: string) => {
     try {
-      // Different handling based on timeFrame
+      if (!dateStr) return '';
+      
       if (timeFrame === 'day') {
-        // For daily view, the date is in 'YYYY-MM-DD' format
         return format(new Date(dateStr), 'MMM d');
       } else if (timeFrame === 'week') {
-        // For weekly view, the date is in 'YYYY-Wxx' format (year-week)
-        // Parse the year and week number
         const [year, weekPart] = dateStr.split('-');
-        const weekNumber = parseInt(weekPart.substring(1), 10);
-        return `Week ${weekNumber}`;
+        const weekNumber = parseInt(weekPart?.substring(1), 10);
+        return weekNumber ? `Week ${weekNumber}` : dateStr;
       } else if (timeFrame === 'month') {
-        // For monthly view, the date is in 'YYYY-MM' format
-        // Parse the year and month
         const [year, month] = dateStr.split('-');
-        // Create a date for the first day of the month
-        const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-        return format(date, 'MMM yyyy');
+        if (year && month) {
+          const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+          return format(date, 'MMM yyyy');
+        }
       }
-      
-      // Fallback if format is unknown
       return dateStr;
     } catch (error) {
       console.error("Error formatting date:", dateStr, error);
@@ -93,10 +108,12 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
   };
 
   // Format dates to be more readable
-  const formattedData = chartData.map(item => ({
+  const formattedData = Array.isArray(chartData) ? chartData.map(item => ({
     ...item,
     formattedDate: formatDateDisplay(item.date)
-  }));
+  })) : [];
+
+  console.log('[CrimeTrendChart] Final formattedData for chart:', formattedData);
 
   return (
     <Card className={className}>
@@ -111,39 +128,6 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
               <SelectItem value="day">Daily</SelectItem>
               <SelectItem value="week">Weekly</SelectItem>
               <SelectItem value="month">Monthly</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Severity" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all_severities">All Severities</SelectItem>
-              {severityLevels.map(level => (
-                <SelectItem key={level} value={level}>{level}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select 
-            value={selectedIncidentTypes.length > 0 ? selectedIncidentTypes[0] : "all_types"}
-            onValueChange={(value) => {
-              if (value === "all_types") {
-                setSelectedIncidentTypes([]);
-              } else {
-                setSelectedIncidentTypes([value]);
-              }
-            }}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Incident Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all_types">All Types</SelectItem>
-              {incidentTypes.map(type => (
-                <SelectItem key={type} value={type}>{type}</SelectItem>
-              ))}
             </SelectContent>
           </Select>
 
@@ -205,50 +189,60 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
         </div>
       </CardHeader>
       <CardContent className="h-[calc(100%-8rem)] min-h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={formattedData}
-            margin={{
-              top: 10,
-              right: 30,
-              left: 10,
-              bottom: 30,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
-            <XAxis 
-              dataKey="formattedDate" 
-              padding={{ left: 10, right: 10 }}
-              tick={{ fill: '#9CA3AF', fontSize: 12 }}
-              tickMargin={10}
-            />
-            <YAxis 
-              tick={{ fill: '#9CA3AF', fontSize: 12 }}
-              tickMargin={10}
-              width={40}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                borderColor: '#374151',
-                color: '#F9FAFB',
-                borderRadius: '6px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div>Loading chart data...</div>
+          </div>
+        ) : formattedData.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div>No data available</div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={formattedData}
+              margin={{
+                top: 10,
+                right: 30,
+                left: 10,
+                bottom: 30,
               }}
-              formatter={(value) => [`${value} incidents`, 'Count']}
-              labelFormatter={(label) => `Date: ${label}`}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="count" 
-              stroke="#3B82F6" 
-              fill="#3B82F6" 
-              fillOpacity={0.4}
-              strokeWidth={2}
-              activeDot={{ r: 6 }} 
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
+              <XAxis 
+                dataKey="formattedDate" 
+                padding={{ left: 10, right: 10 }}
+                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                tickMargin={10}
+              />
+              <YAxis 
+                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                tickMargin={10}
+                width={40}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                  borderColor: '#374151',
+                  color: '#F9FAFB',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                }}
+                formatter={(value) => [`${value} incidents`, 'Count']}
+                labelFormatter={(label) => `Date: ${label}`}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="count" 
+                stroke="#3B82F6" 
+                fill="#3B82F6" 
+                fillOpacity={0.4}
+                strokeWidth={2}
+                activeDot={{ r: 6 }} 
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );

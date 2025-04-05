@@ -1,13 +1,22 @@
+import { createClient } from '@supabase/supabase-js';
 import { toast } from "sonner";
+
+// Initialize Supabase client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase credentials');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Types for our data
 export interface CrimeReport {
   id: number;
   created_at: string;
-  location: {
-    type: string;
-    coordinates: [number, number];
-  };
+  latitude: number;
+  longitude: number;
   date: string;
   time: string;
   perpetrator: string;
@@ -16,7 +25,7 @@ export interface CrimeReport {
   report_type: string;
   incident_type: string;
   status: "New" | "Under Investigation" | "Resolved" | "False Report";
-  incident_severity: "Low" | "Medium" | "High" | "Critical";
+  severity: "Low" | "Medium" | "High" | "Critical";
 }
 
 export interface User {
@@ -35,155 +44,19 @@ export interface User {
   language: string;
 }
 
-// Generate mock data for development - centered in Surat, Gujarat, India
-export const generateMockData = (): CrimeReport[] => {
-  // Define common incident types for India
-  const incidentTypes = [
-    "Theft", 
-    "Vehicle Theft",
-    "Burglary", 
-    "Robbery",
-    "Assault", 
-    "Harassment",
-    "Fraud", 
-    "Public Disturbance", 
-    "Drug Offense",
-    "Traffic Violation",
-    "Property Damage",
-    "Eve Teasing"
-  ];
-  
-  // Define statuses
-  const statuses: ("New" | "Under Investigation" | "Resolved" | "False Report")[] = [
-    "New", 
-    "Under Investigation", 
-    "Resolved", 
-    "False Report"
-  ];
-  
-  // Define severity levels
-  const severityLevels: ("Low" | "Medium" | "High" | "Critical")[] = [
-    "Low",
-    "Medium",
-    "High",
-    "Critical"
-  ];
-
-  // Define Surat city center coordinates
-  // Surat, Gujarat, India approximate coordinates
-  const centerLat = 21.1702;
-  const centerLng = 72.8311;
-  
-  // Generate 100 random crime reports
-  return Array.from({ length: 100 }, (_, i) => {
-    // Create a random date within the last 30 days
-    const date = new Date();
-    date.setDate(date.getDate() - Math.floor(Math.random() * 30));
-    
-    // Random time
-    const hours = Math.floor(Math.random() * 24);
-    const minutes = Math.floor(Math.random() * 60);
-    
-    // Random location within ~3km of Surat city center
-    const lat = centerLat + (Math.random() - 0.5) * 0.05;
-    const lng = centerLng + (Math.random() - 0.5) * 0.05;
-    
-    // Generate mock Indian names for perpetrators
-    const indianFirstNames = ["Raj", "Amit", "Rahul", "Vikram", "Sunil", "Ajay", "Unknown", "Unidentified"];
-    const indianLastNames = ["Sharma", "Patel", "Singh", "Kumar", "Verma", "Shah", "Suspect"];
-    
-    const randomFirstName = indianFirstNames[Math.floor(Math.random() * indianFirstNames.length)];
-    const randomLastName = indianLastNames[Math.floor(Math.random() * indianLastNames.length)];
-    const perpetrator = Math.random() > 0.6 ? "Unknown" : `${randomFirstName} ${randomLastName}`;
-    
-    // Generate more realistic incident details
-    const incidentDetails = [
-      "Victim reported their mobile phone was snatched by two individuals on a motorcycle.",
-      "Store owner reported break-in and theft of cash and electronics.",
-      "Complainant reported harassment while walking home from work.",
-      "Vehicle parked outside residence was damaged overnight.",
-      "Resident reported suspicious activity in the neighborhood.",
-      "Personal belongings stolen from apartment.",
-      "Victim reported being followed by unknown individuals.",
-      "Shop owner reported counterfeit currency used for purchase.",
-      "Verbal altercation escalated to physical assault.",
-      "Complainant reported online fraud and money loss."
-    ];
-    
-    const chosenIncidentType = incidentTypes[Math.floor(Math.random() * incidentTypes.length)];
-    const chosenStatus = statuses[Math.floor(Math.random() * statuses.length)];
-    const chosenSeverity = severityLevels[Math.floor(Math.random() * severityLevels.length)];
-    
-    return {
-      id: i + 1,
-      created_at: date.toISOString(),
-      location: {
-        type: "Point",
-        coordinates: [lng, lat]
-      },
-      date: date.toISOString().split('T')[0],
-      time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`,
-      perpetrator: perpetrator,
-      details: incidentDetails[Math.floor(Math.random() * incidentDetails.length)],
-      user_id: Math.floor(Math.random() * 20) + 1,
-      report_type: Math.random() > 0.3 ? "Citizen Report" : "Police Report",
-      incident_type: chosenIncidentType,
-      status: chosenStatus,
-      incident_severity: chosenSeverity
-    };
-  });
-};
-
-// Generate mock user data for Surat, Gujarat
-export const generateMockUsers = (): User[] => {
-  // Common Indian names
-  const firstNames = ["Raj", "Amit", "Rahul", "Priya", "Neha", "Anjali", "Vikram", "Sanjay", "Kavita", "Deepika"];
-  const lastNames = ["Sharma", "Patel", "Shah", "Singh", "Kumar", "Verma", "Desai", "Mehta", "Joshi", "Gandhi"];
-  
-  // Areas in Surat
-  const areas = ["Adajan", "City Light", "Vesu", "Althan", "Athwa", "Dumas", "Katargam", "Varachha", "Udhna", "Piplod"];
-  
-  // Languages common in Gujarat
-  const languages = ["Gujarati", "Hindi", "English"];
-  
-  return Array.from({ length: 20 }, (_, i) => {
-    // Create a random registration date within the last year
-    const created = new Date();
-    created.setDate(created.getDate() - Math.floor(Math.random() * 365));
-    
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-    const area = areas[Math.floor(Math.random() * areas.length)];
-    const language = languages[Math.floor(Math.random() * languages.length)];
-    
-    return {
-      id: i + 1,
-      created_at: created.toISOString(),
-      first_name: firstName,
-      last_name: lastName,
-      address: `${Math.floor(Math.random() * 999) + 1}, ${area} Road, Surat`,
-      pincode: 395007,
-      state: "Gujarat",
-      city: "Surat",
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${Math.floor(Math.random() * 999) + 1}@example.com`,
-      phone_number: `+91 ${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-      points: Math.floor(Math.random() * 500),
-      level: Math.floor(Math.random() * 5) + 1,
-      language: language
-    };
-  });
-};
-
 // Function to fetch crime reports from Supabase
 export const fetchCrimeReports = async (): Promise<CrimeReport[]> => {
-  // For now, return mock data
-  // In production, this would be replaced with a Supabase query
   try {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Return mock data
-    return generateMockData();
+    const { data, error } = await supabase
+      .from('crime_report')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
   } catch (error) {
     console.error("Error fetching crime reports:", error);
     toast.error("Failed to fetch crime reports");
@@ -194,11 +67,16 @@ export const fetchCrimeReports = async (): Promise<CrimeReport[]> => {
 // Function to fetch users from Supabase
 export const fetchUsers = async (): Promise<User[]> => {
   try {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Return mock data
-    return generateMockUsers();
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
   } catch (error) {
     console.error("Error fetching users:", error);
     toast.error("Failed to fetch users");
@@ -240,156 +118,280 @@ export const formatDate = (dateString: string): string => {
 };
 
 // Get crime reports for today
-export const getTodayReports = (reports: CrimeReport[]): CrimeReport[] => {
+export const getTodayReports = async (): Promise<CrimeReport[]> => {
   const today = new Date().toISOString().split('T')[0];
-  return reports.filter(report => report.date === today);
+  const { data, error } = await supabase
+    .from('crime_report')
+    .select('*')
+    .eq('date', today)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching today's reports:", error);
+    toast.error("Failed to fetch today's reports");
+    return [];
+  }
+
+  return data || [];
 };
 
 // Get crime reports for the last 7 days
-export const getLastWeekReports = (reports: CrimeReport[]): CrimeReport[] => {
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  
-  return reports.filter(report => {
-    const reportDate = new Date(report.date);
-    return reportDate >= oneWeekAgo;
-  });
+export const getLastWeekReports = async (): Promise<CrimeReport[]> => {
+  try {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    const { data, error } = await supabase
+      .from('crime_report')
+      .select('*')
+      .gte('date', oneWeekAgo.toISOString().split('T')[0])
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching last week's reports:", error);
+    toast.error("Failed to fetch last week's reports");
+    return [];
+  }
 };
 
 // Get crime reports for the last 30 days
-export const getLastMonthReports = (reports: CrimeReport[]): CrimeReport[] => {
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
-  
-  return reports.filter(report => {
-    const reportDate = new Date(report.date);
-    return reportDate >= oneMonthAgo;
-  });
+export const getLastMonthReports = async (): Promise<CrimeReport[]> => {
+  try {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+    
+    const { data, error } = await supabase
+      .from('crime_report')
+      .select('*')
+      .gte('date', oneMonthAgo.toISOString().split('T')[0])
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching last month's reports:", error);
+    toast.error("Failed to fetch last month's reports");
+    return [];
+  }
 };
 
 // Get the most frequent incident type in the reports
-export const getMostFrequentIncidentType = (reports: CrimeReport[]): string => {
-  const incidentCounts: Record<string, number> = {};
-  
-  reports.forEach(report => {
-    incidentCounts[report.incident_type] = (incidentCounts[report.incident_type] || 0) + 1;
-  });
-  
-  let mostFrequent = '';
-  let highestCount = 0;
-  
-  Object.entries(incidentCounts).forEach(([type, count]) => {
-    if (count > highestCount) {
-      mostFrequent = type;
-      highestCount = count;
+export const getMostFrequentIncidentType = async (): Promise<string> => {
+  try {
+    const query = `
+      SELECT incident_type, COUNT(*) as count
+      FROM crime_report
+      GROUP BY incident_type
+      ORDER BY count DESC
+      LIMIT 1
+    `;
+
+    const { data, error } = await supabase.rpc('execute_sql', { query });
+
+    if (error) {
+      throw error;
     }
-  });
-  
-  return mostFrequent;
+
+    // Extract the incident_type from the result
+    return data?.[0]?.result?.incident_type || '';
+  } catch (error) {
+    console.error("Error fetching most frequent incident type:", error);
+    toast.error("Failed to fetch most frequent incident type");
+    return '';
+  }
 };
 
 // Group reports by date for the time trend chart
-export const getReportsByDate = (reports: CrimeReport[], timeFrame: 'day' | 'week' | 'month' = 'day'): { date: string; count: number }[] => {
-  const dateMap: Record<string, number> = {};
-  
-  reports.forEach(report => {
-    let dateKey = report.date; // Default for daily view
-    
-    if (timeFrame === 'week' || timeFrame === 'month') {
-      const reportDate = new Date(report.date);
-      
-      if (timeFrame === 'week') {
-        // Get the year and week number
-        const year = reportDate.getFullYear();
-        const weekNumber = getWeekNumber(reportDate);
-        dateKey = `${year}-W${weekNumber}`;
-      } else if (timeFrame === 'month') {
-        // Get the year and month
-        const year = reportDate.getFullYear();
-        const month = reportDate.getMonth() + 1; // January is 0
-        dateKey = `${year}-${month.toString().padStart(2, '0')}`;
-      }
-    }
-    
-    dateMap[dateKey] = (dateMap[dateKey] || 0) + 1;
-  });
-  
-  // Convert to array and sort by date
-  return Object.entries(dateMap)
-    .map(([date, count]) => ({ date, count }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-};
+export const getReportsByDate = async (timeFrame: 'day' | 'week' | 'month' = 'day'): Promise<{ date: string; count: number }[]> => {
+  console.log(`[getReportsByDate] Fetching data with timeFrame: ${timeFrame}`);
+  try {
+    const query = `
+      SELECT 
+        date_trunc('${timeFrame}', date::timestamp) as date,
+        COUNT(*) as count
+      FROM crime_report
+      GROUP BY date_trunc('${timeFrame}', date::timestamp)
+      ORDER BY date_trunc('${timeFrame}', date::timestamp)
+    `;
 
-// Helper function to get the week number of a date
-const getWeekNumber = (date: Date): number => {
-  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+    console.log(`[getReportsByDate] Executing SQL query:`, query);
+    const { data, error } = await supabase.rpc('execute_sql', { query });
+    
+    if (error) {
+      console.error(`[getReportsByDate] Error details:`, error);
+      throw error;
+    }
+
+    console.log(`[getReportsByDate] Raw data received:`, data);
+    
+    // Ensure we return an array of objects with the correct structure
+    const formattedData = Array.isArray(data) ? data.map(item => {
+      console.log(`[getReportsByDate] Processing item:`, item);
+      return {
+        date: item.result?.date || item.date,
+        count: Number(item.result?.count || item.count)
+      };
+    }) : [];
+    
+    console.log(`[getReportsByDate] Formatted data:`, formattedData);
+    return formattedData;
+  } catch (error) {
+    console.error("[getReportsByDate] Error fetching reports by date:", error);
+    toast.error("Failed to fetch reports by date");
+    return [];
+  }
 };
 
 // Group reports by hour for the time of day analysis
-export const getReportsByHour = (reports: CrimeReport[]): { hour: number; count: number }[] => {
-  const hourCounts = Array(24).fill(0).map((_, i) => ({ hour: i, count: 0 }));
-  
-  reports.forEach(report => {
-    const hour = parseInt(report.time.split(':')[0], 10);
-    hourCounts[hour].count += 1;
-  });
-  
-  return hourCounts;
+export const getReportsByHour = async (): Promise<{ hour: number; count: number }[]> => {
+  console.log(`[getReportsByHour] Fetching hour data`);
+  try {
+    const query = `
+      SELECT 
+        EXTRACT(HOUR FROM time::time) as hour,
+        COUNT(*) as count
+      FROM crime_report
+      GROUP BY EXTRACT(HOUR FROM time::time)
+      ORDER BY hour
+    `;
+
+    console.log(`[getReportsByHour] Executing SQL query:`, query);
+    const { data, error } = await supabase.rpc('execute_sql', { query });
+
+    if (error) {
+      console.error(`[getReportsByHour] Error details:`, error);
+      throw error;
+    }
+
+    console.log(`[getReportsByHour] Raw data received:`, data);
+    
+    // Ensure we return an array of objects with the correct structure
+    const formattedData = Array.isArray(data) ? data.map(item => {
+      console.log(`[getReportsByHour] Processing item:`, item);
+      return {
+        hour: Number(item.result?.hour || item.hour),
+        count: Number(item.result?.count || item.count)
+      };
+    }) : [];
+    
+    console.log(`[getReportsByHour] Formatted data:`, formattedData);
+    return formattedData;
+  } catch (error) {
+    console.error("[getReportsByHour] Error fetching reports by hour:", error);
+    toast.error("Failed to fetch reports by hour");
+    return [];
+  }
 };
 
 // Group reports by incident type
-export const getReportsByIncidentType = (reports: CrimeReport[]): { type: string; count: number }[] => {
-  const typeCounts: Record<string, number> = {};
-  
-  reports.forEach(report => {
-    typeCounts[report.incident_type] = (typeCounts[report.incident_type] || 0) + 1;
-  });
-  
-  return Object.entries(typeCounts)
-    .map(([type, count]) => ({ type, count }))
-    .sort((a, b) => b.count - a.count);
+export const getReportsByIncidentType = async (): Promise<{ type: string; count: number }[]> => {
+  console.log(`[getReportsByIncidentType] Fetching incident type data`);
+  try {
+    const query = `
+      SELECT 
+        incident_type as type,
+        COUNT(*) as count
+      FROM crime_report
+      GROUP BY incident_type
+      ORDER BY count DESC
+    `;
+
+    console.log(`[getReportsByIncidentType] Executing SQL query:`, query);
+    const { data, error } = await supabase.rpc('execute_sql', { query });
+
+    if (error) {
+      console.error(`[getReportsByIncidentType] Error details:`, error);
+      throw error;
+    }
+
+    console.log(`[getReportsByIncidentType] Raw data received:`, data);
+    
+    // Ensure we return an array of objects with the correct structure
+    const formattedData = Array.isArray(data) ? data.map(item => {
+      console.log(`[getReportsByIncidentType] Processing item:`, item);
+      return {
+        type: item.result?.type || item.type,
+        count: Number(item.result?.count || item.count)
+      };
+    }) : [];
+    
+    console.log(`[getReportsByIncidentType] Formatted data:`, formattedData);
+    return formattedData;
+  } catch (error) {
+    console.error("[getReportsByIncidentType] Error fetching reports by incident type:", error);
+    toast.error("Failed to fetch reports by incident type");
+    return [];
+  }
 };
 
 // Group reports by status
-export const getReportsByStatus = (reports: CrimeReport[]): { status: string; count: number }[] => {
-  const statusCounts: Record<string, number> = {
-    "New": 0,
-    "Under Investigation": 0,
-    "Resolved": 0,
-    "False Report": 0
-  };
-  
-  reports.forEach(report => {
-    if (report.status) {
-      statusCounts[report.status] = (statusCounts[report.status] || 0) + 1;
-    } else {
-      statusCounts["New"] += 1; // Default to "New" if status is not set
+export const getReportsByStatus = async (): Promise<{ status: string; count: number }[]> => {
+  console.log(`[getReportsByStatus] Fetching status data`);
+  try {
+    const query = `
+      SELECT 
+        status::text,
+        COUNT(*)::integer as count
+      FROM crime_report
+      GROUP BY status
+      ORDER BY count DESC
+    `;
+
+    console.log(`[getReportsByStatus] Executing SQL query:`, query);
+    const { data, error } = await supabase.rpc('execute_sql', { query });
+
+    if (error) {
+      console.error(`[getReportsByStatus] Error details:`, error);
+      throw error;
     }
-  });
-  
-  return Object.entries(statusCounts)
-    .map(([status, count]) => ({ status, count }));
+
+    console.log(`[getReportsByStatus] Raw data received:`, data);
+    
+    // Extract the results from the data
+    const formattedData = Array.isArray(data) ? data.map(item => {
+      console.log(`[getReportsByStatus] Processing item:`, item);
+      return {
+        status: item.result?.status || item.status,
+        count: Number(item.result?.count || item.count)
+      };
+    }) : [];
+    
+    console.log(`[getReportsByStatus] Formatted data:`, formattedData);
+    return formattedData;
+  } catch (error) {
+    console.error("[getReportsByStatus] Error fetching reports by status:", error);
+    toast.error("Failed to fetch reports by status");
+    return [];
+  }
 };
 
 // Group reports by severity
-export const getReportsBySeverity = (reports: CrimeReport[]): { severity: string; count: number }[] => {
-  const severityCounts: Record<string, number> = {
-    "Low": 0,
-    "Medium": 0,
-    "High": 0,
-    "Critical": 0
-  };
-  
-  reports.forEach(report => {
-    if (report.incident_severity) {
-      severityCounts[report.incident_severity] = (severityCounts[report.incident_severity] || 0) + 1;
-    } else {
-      severityCounts["Medium"] += 1; // Default to "Medium" if severity is not set
+export const getReportsBySeverity = async (): Promise<{ severity: string; count: number }[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('crime_report')
+      .select('severity, count')
+      .order('count', { ascending: false });
+
+    if (error) {
+      throw error;
     }
-  });
-  
-  return Object.entries(severityCounts)
-    .map(([severity, count]) => ({ severity, count }));
+
+    return data?.map(item => ({
+      severity: item.severity,
+      count: item.count
+    })) || [];
+  } catch (error) {
+    console.error("Error fetching reports by severity:", error);
+    toast.error("Failed to fetch reports by severity");
+    return [];
+  }
 };

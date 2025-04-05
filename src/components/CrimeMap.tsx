@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Component, ErrorInfo, ReactNode } from 'react';
 import { MapContainer, TileLayer, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { toast } from "sonner";
@@ -83,10 +82,45 @@ const Marker = (props: any) => {
   return <LeafletMarker {...props} />;
 };
 
+// Simple error boundary component
+class ErrorBoundary extends Component<{ children: ReactNode, fallback: ReactNode }> {
+  state = { hasError: false };
+  
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Map error:", error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    
+    return this.props.children;
+  }
+}
+
 const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
   // Default center at Surat, Gujarat, India
   const [center, setCenter] = useState<[number, number]>([21.1702, 72.8311]);
   const [selectedReport, setSelectedReport] = useState<CrimeReport | null>(null);
+
+  useEffect(() => {
+    // Log reports with invalid location data
+    const invalidReports = reports.filter(report => {
+      return !report.latitude || !report.longitude || 
+             isNaN(report.latitude) || isNaN(report.longitude);
+    });
+    
+    if (invalidReports.length > 0) {
+      console.warn(`Found ${invalidReports.length} reports with invalid location data:`, 
+        invalidReports.map(r => ({ id: r.id, latitude: r.latitude, longitude: r.longitude }))
+      );
+    }
+  }, [reports]);
 
   useEffect(() => {
     // If we have reports, center the map on the most recent one
@@ -96,10 +130,11 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )[0];
         
-        setCenter([
-          recentReport.location.coordinates[1], 
-          recentReport.location.coordinates[0]
-        ]);
+        if (recentReport.latitude && recentReport.longitude && 
+            !isNaN(recentReport.latitude) && !isNaN(recentReport.longitude)) {
+          // Leaflet uses [lat, lng] format
+          setCenter([recentReport.latitude, recentReport.longitude]);
+        }
       } catch (error) {
         console.error("Error centering map:", error);
         toast.error("Failed to center map");
@@ -120,47 +155,60 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
     return crimeIcons[category as keyof typeof crimeIcons];
   };
 
+  // Filter reports with valid coordinates
+  const validReports = reports.filter(report => 
+    report.latitude && report.longitude && 
+    !isNaN(report.latitude) && !isNaN(report.longitude)
+  );
+
   return (
-    <div className="crime-map-container relative h-full">
-      <MapContainer
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapView center={center} />
-        
-        <MarkerClusterGroup chunkedLoading>
-          {reports.map((report) => {
-            // Create the Leaflet marker with the icon
-            const icon = getMarkerIcon(report);
-            return (
-              <Marker
-                key={report.id}
-                position={[
-                  report.location.coordinates[1],
-                  report.location.coordinates[0]
-                ]}
-                icon={icon}
-                eventHandlers={{
-                  click: () => handleMarkerClick(report),
-                }}
-              >
-                <Popup>
-                  <div className="text-black">
-                    <h3 className="font-bold">{report.incident_type}</h3>
-                    <p className="text-sm">Date: {new Date(report.date).toLocaleDateString()}</p>
-                    <p className="text-sm">Time: {report.time.substring(0, 5)}</p>
-                    <p className="text-sm">ID: {report.id}</p>
-                    <p className="text-sm">Status: {report.status}</p>
-                    <p className="text-sm">Severity: {report.incident_severity}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
-        </MarkerClusterGroup>
-      </MapContainer>
+    <div className="crime-map-container relative h-full z-10">
+      <ErrorBoundary fallback={
+        <div className="h-full w-full flex items-center justify-center bg-gray-100">
+          <div className="text-center p-4">
+            <h3 className="text-lg font-medium mb-2">Map loading error</h3>
+            <p className="text-sm text-gray-600">There was a problem loading the crime map.</p>
+          </div>
+        </div>
+      }>
+        <MapContainer
+          style={{ height: "100%", width: "100%" }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <MapView center={center} />
+          
+          <MarkerClusterGroup chunkedLoading>
+            {validReports.map((report) => {
+              // Create the Leaflet marker with the icon
+              const icon = getMarkerIcon(report);
+              
+              return (
+                <Marker
+                  key={report.id}
+                  position={[report.latitude, report.longitude]} // Leaflet uses [lat, lng]
+                  icon={icon}
+                  eventHandlers={{
+                    click: () => handleMarkerClick(report),
+                  }}
+                >
+                  <Popup>
+                    <div className="text-black">
+                      <h3 className="font-bold">{report.incident_type}</h3>
+                      <p className="text-sm">Date: {new Date(report.date).toLocaleDateString()}</p>
+                      <p className="text-sm">Time: {report.time.substring(0, 5)}</p>
+                      <p className="text-sm">ID: {report.id}</p>
+                      <p className="text-sm">Status: {report.status}</p>
+                      <p className="text-sm">Severity: {report.severity}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MarkerClusterGroup>
+        </MapContainer>
+      </ErrorBoundary>
       
       <div className="map-overlay absolute bottom-4 left-4 bg-background/80 backdrop-blur-sm p-2 rounded-md shadow-md flex flex-wrap gap-2">
         {Object.keys(crimeIcons).map(category => (

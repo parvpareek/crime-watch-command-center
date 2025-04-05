@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getReportsByHour, CrimeReport } from '@/utils/data';
@@ -14,34 +13,56 @@ interface TimeOfDayChartProps {
 const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) => {
   // State for filters
   const [selectedIncidentTypes, setSelectedIncidentTypes] = useState<string[]>([]);
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('');
+  const [selectedSeverity, setSelectedSeverity] = useState<string>("all_severities");
+  const [chartData, setChartData] = useState<{ hour: number; count: number }[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // Get unique incident types
   const incidentTypes = Array.from(new Set(reports.map(report => report.incident_type)));
   const severityLevels = ['Low', 'Medium', 'High', 'Critical'];
 
-  // Filter reports based on selected filters
-  const filteredReports = reports.filter(report => {
-    // Filter by incident type
-    if (selectedIncidentTypes.length > 0 && !selectedIncidentTypes.includes(report.incident_type)) {
-      return false;
-    }
+  // Fetch hour data on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      console.log('[TimeOfDayChart] Starting to fetch hour data');
+      setLoading(true);
+      try {
+        console.log('[TimeOfDayChart] Calling getReportsByHour');
+        const filteredReports = reports.filter(report => {
+          // Filter by incident type
+          if (selectedIncidentTypes.length > 0 && !selectedIncidentTypes.includes(report.incident_type)) {
+            return false;
+          }
 
-    // Filter by severity
-    if (selectedSeverity && report.incident_severity !== selectedSeverity) {
-      return false;
-    }
+          // Filter by severity
+          if (selectedSeverity !== "all_severities" && report.severity !== selectedSeverity) {
+            return false;
+          }
 
-    return true;
-  });
+          return true;
+        });
+        const data = await getReportsByHour();
+        console.log('[TimeOfDayChart] Data received from getReportsByHour:', data);
+        setChartData(data);
+      } catch (error) {
+        console.error("[TimeOfDayChart] Error fetching hour data:", error);
+        setChartData([]);
+      } finally {
+        setLoading(false);
+        console.log('[TimeOfDayChart] Updated chart data state. Loading set to false');
+      }
+    };
 
-  const chartData = getReportsByHour(filteredReports);
+    fetchData();
+  }, [reports, selectedIncidentTypes, selectedSeverity]);
 
   // Format hours to be more readable
-  const formattedData = chartData.map(item => ({
+  const formattedData = Array.isArray(chartData) ? chartData.map(item => ({
     ...item,
     formattedHour: `${item.hour % 12 || 12}${item.hour < 12 ? 'am' : 'pm'}`
-  }));
+  })) : [];
+
+  console.log('[TimeOfDayChart] Final formattedData for chart:', formattedData);
 
   return (
     <Card className={className}>
@@ -86,7 +107,7 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
             variant="outline" 
             onClick={() => {
               setSelectedIncidentTypes([]);
-              setSelectedSeverity('');
+              setSelectedSeverity('all_severities');
             }}
           >
             Reset Filters
@@ -94,49 +115,59 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
         </div>
       </CardHeader>
       <CardContent className="h-[calc(100%-7rem)] min-h-[250px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={formattedData}
-            margin={{
-              top: 10,
-              right: 20,
-              left: 5,
-              bottom: 20,
-            }}
-            barSize={24}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
-            <XAxis 
-              dataKey="formattedHour" 
-              scale="point" 
-              padding={{ left: 10, right: 10 }}
-              tick={{ fill: '#9CA3AF', fontSize: 12 }}
-              tickMargin={10}
-            />
-            <YAxis 
-              tick={{ fill: '#9CA3AF', fontSize: 12 }}
-              tickMargin={8}
-              width={30}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(17, 24, 39, 0.9)',
-                borderColor: '#374151',
-                color: '#F9FAFB',
-                borderRadius: '6px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div>Loading chart data...</div>
+          </div>
+        ) : formattedData.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div>No data available</div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={formattedData}
+              margin={{
+                top: 10,
+                right: 20,
+                left: 5,
+                bottom: 20,
               }}
-              formatter={(value) => [`${value} incidents`, 'Count']}
-              labelFormatter={(label) => `Time: ${label}`}
-            />
-            <Bar 
-              dataKey="count" 
-              fill="#EC4899" 
-              radius={[4, 4, 0, 0]} 
-              maxBarSize={50}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+              barSize={24}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
+              <XAxis 
+                dataKey="formattedHour" 
+                scale="point" 
+                padding={{ left: 10, right: 10 }}
+                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                tickMargin={10}
+              />
+              <YAxis 
+                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                tickMargin={8}
+                width={30}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                  borderColor: '#374151',
+                  color: '#F9FAFB',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                }}
+                formatter={(value) => [`${value} incidents`, 'Count']}
+                labelFormatter={(label) => `Time: ${label}`}
+              />
+              <Bar 
+                dataKey="count" 
+                fill="#EC4899" 
+                radius={[4, 4, 0, 0]} 
+                maxBarSize={50}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );

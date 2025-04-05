@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import CrimeMap from '@/components/CrimeMap';
 import KpiCard from '@/components/KpiCard';
@@ -23,20 +22,64 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<CrimeReport | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [kpiData, setKpiData] = useState({
+    todayCount: 0,
+    lastWeekCount: 0,
+    lastMonthCount: 0,
+    mostFrequentType: '',
+    weeklyChange: '0.0',
+    newReports: 0,
+    investigatingReports: 0
+  });
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Fetch all required data in parallel
+      const [
+        allReports,
+        todayReports,
+        lastWeekReports,
+        lastMonthReports,
+        mostFrequentType,
+        statusCounts
+      ] = await Promise.all([
+        fetchCrimeReports(),
+        getTodayReports(),
+        getLastWeekReports(),
+        getLastMonthReports(),
+        getMostFrequentIncidentType(),
+        getReportsByStatus()
+      ]);
+
+      setReports(allReports);
+
+      // Calculate percentage change for week vs previous week
+      const weeklyChange = lastWeekReports.length > 0 
+        ? ((lastWeekReports.length - (lastMonthReports.length - lastWeekReports.length) / 3) / 
+          ((lastMonthReports.length - lastWeekReports.length) / 3) * 100).toFixed(1)
+        : '0.0';
+
+      const newReports = statusCounts.find(s => s.status === 'New')?.count || 0;
+      const investigatingReports = statusCounts.find(s => s.status === 'Under Investigation')?.count || 0;
+
+      setKpiData({
+        todayCount: todayReports.length,
+        lastWeekCount: lastWeekReports.length,
+        lastMonthCount: lastMonthReports.length,
+        mostFrequentType,
+        weeklyChange,
+        newReports,
+        investigatingReports
+      });
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchCrimeReports();
-        setReports(data);
-      } catch (error) {
-        console.error('Error loading crime reports:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadData();
   }, []);
 
@@ -45,20 +88,20 @@ const Dashboard: React.FC = () => {
     setDrawerOpen(true);
   };
 
-  // Calculate KPI values
-  const todayCount = getTodayReports(reports).length;
-  const lastWeekCount = getLastWeekReports(reports).length;
-  const lastMonthCount = getLastMonthReports(reports).length;
-  const mostFrequentType = getMostFrequentIncidentType(reports);
-  
-  // Calculate percentage change for week vs previous week
-  const weeklyChange = lastWeekCount > 0 
-    ? ((lastWeekCount - (lastMonthCount - lastWeekCount) / 3) / ((lastMonthCount - lastWeekCount) / 3) * 100).toFixed(1)
-    : '0.0';
-  
-  const statusCounts = getReportsByStatus(reports);
-  const newReports = statusCounts.find(s => s.status === 'New')?.count || 0;
-  const investigatingReports = statusCounts.find(s => s.status === 'Under Investigation')?.count || 0;
+  const handleReportUpdate = (updatedReport: CrimeReport) => {
+    // Update the selected report
+    setSelectedReport(updatedReport);
+    
+    // Update the report in the reports list
+    setReports(prevReports => 
+      prevReports.map(report => 
+        report.id === updatedReport.id ? updatedReport : report
+      )
+    );
+    
+    // Refresh KPI data 
+    loadData();
+  };
 
   return (
     <div className="min-h-screen flex flex-col w-full">
@@ -80,26 +123,26 @@ const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               <KpiCard 
                 title="Today's Reports" 
-                value={todayCount}
+                value={kpiData.todayCount}
                 icon={<FileText className="h-4 w-4" />} 
               />
               <KpiCard 
                 title="Last 7 Days" 
-                value={lastWeekCount} 
-                changeType={parseFloat(weeklyChange) > 0 ? 'increase' : parseFloat(weeklyChange) < 0 ? 'decrease' : 'neutral'}
-                changeValue={`${Math.abs(parseFloat(weeklyChange))}%`}
+                value={kpiData.lastWeekCount} 
+                changeType={parseFloat(kpiData.weeklyChange) > 0 ? 'increase' : parseFloat(kpiData.weeklyChange) < 0 ? 'decrease' : 'neutral'}
+                changeValue={`${Math.abs(parseFloat(kpiData.weeklyChange))}%`}
                 description="vs previous week"
                 icon={<BarChart2 className="h-4 w-4" />} 
               />
               <KpiCard 
                 title="New Reports" 
-                value={newReports} 
+                value={kpiData.newReports} 
                 description="awaiting review"
                 icon={<AlertTriangle className="h-4 w-4" />} 
               />
               <KpiCard 
                 title="Under Investigation" 
-                value={investigatingReports} 
+                value={kpiData.investigatingReports} 
                 description="active cases"
                 icon={<Clock className="h-4 w-4" />} 
               />
@@ -140,6 +183,7 @@ const Dashboard: React.FC = () => {
         report={selectedReport} 
         open={drawerOpen} 
         onOpenChange={setDrawerOpen} 
+        onReportUpdate={handleReportUpdate}
       />
     </div>
   );

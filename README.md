@@ -71,3 +71,66 @@ Yes it is!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+# Crime Watch Database Populator
+
+This script populates a Supabase database with mock crime data for the city of Surat, Gujarat.
+
+## Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+- Supabase project with the following tables:
+  - `crime_reports`
+  - `users`
+
+## Setup
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Create a `.env` file in the root directory with your Supabase credentials:
+```bash
+cp .env.example .env
+```
+
+3. Edit the `.env` file and add your Supabase credentials:
+- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key (not the anon key)
+
+## Running the Script
+
+To populate the database with mock data:
+
+```bash
+npm run populate
+```
+
+The script will:
+1. Generate 20 mock users
+2. Generate 100 mock crime reports
+3. Insert all data into your Supabase database
+
+## Data Details
+
+### Users
+- 20 mock users with Indian names
+- All users are from Surat, Gujarat (pincode: 395007)
+- Random points (0-500) and levels (1-5)
+- Mix of languages (Gujarati, Hindi, English)
+
+### Crime Reports
+- 100 mock crime reports
+- All reports are within ~3km of Surat city center
+- Various incident types, severities, and statuses
+- Random dates within the last 30 days
+- Mix of citizen and police reports
+
+## Notes
+
+- The script uses the service role key to bypass RLS policies
+- All data is generated with realistic Indian names and locations
+- Crime reports are distributed around Surat city center
+- Each crime report is randomly assigned to one of the generated users
