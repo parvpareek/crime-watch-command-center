@@ -121,7 +121,7 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
   };
 
   return (
-    <div className="crime-map-container">
+    <div className="crime-map-container relative h-full">
       <MapContainer
         style={{ height: "100%", width: "100%" }}
       >
@@ -162,11 +162,21 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
         </MarkerClusterGroup>
       </MapContainer>
       
-      <div className="map-overlay flex space-x-2">
-        {['violent', 'property', 'drugs', 'public', 'other'].map(category => (
+      <div className="map-overlay absolute bottom-4 left-4 bg-background/80 backdrop-blur-sm p-2 rounded-md shadow-md flex flex-wrap gap-2">
+        {Object.keys(crimeIcons).map(category => (
           <div key={category} className="flex items-center">
-            <div className={`w-4 h-4 rounded-full bg-crime-${category}`}></div>
-            <span className="ml-1 text-xs capitalize">{category}</span>
+            <div 
+              className="w-3 h-3 rounded-full mr-1"
+              style={{
+                backgroundColor: 
+                  category === 'violent' ? '#e53e3e' : 
+                  category === 'property' ? '#dd6b20' : 
+                  category === 'drugs' ? '#805ad5' : 
+                  category === 'public' ? '#3182ce' : 
+                  '#718096'
+              }}
+            />
+            <span className="text-xs capitalize">{category}</span>
           </div>
         ))}
       </div>

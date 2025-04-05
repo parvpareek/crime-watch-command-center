@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 // Types for our data
@@ -290,18 +289,42 @@ export const getMostFrequentIncidentType = (reports: CrimeReport[]): string => {
 };
 
 // Group reports by date for the time trend chart
-export const getReportsByDate = (reports: CrimeReport[]): { date: string; count: number }[] => {
+export const getReportsByDate = (reports: CrimeReport[], timeFrame: 'day' | 'week' | 'month' = 'day'): { date: string; count: number }[] => {
   const dateMap: Record<string, number> = {};
   
   reports.forEach(report => {
-    const date = report.date;
-    dateMap[date] = (dateMap[date] || 0) + 1;
+    let dateKey = report.date; // Default for daily view
+    
+    if (timeFrame === 'week' || timeFrame === 'month') {
+      const reportDate = new Date(report.date);
+      
+      if (timeFrame === 'week') {
+        // Get the year and week number
+        const year = reportDate.getFullYear();
+        const weekNumber = getWeekNumber(reportDate);
+        dateKey = `${year}-W${weekNumber}`;
+      } else if (timeFrame === 'month') {
+        // Get the year and month
+        const year = reportDate.getFullYear();
+        const month = reportDate.getMonth() + 1; // January is 0
+        dateKey = `${year}-${month.toString().padStart(2, '0')}`;
+      }
+    }
+    
+    dateMap[dateKey] = (dateMap[dateKey] || 0) + 1;
   });
   
   // Convert to array and sort by date
   return Object.entries(dateMap)
     .map(([date, count]) => ({ date, count }))
     .sort((a, b) => a.date.localeCompare(b.date));
+};
+
+// Helper function to get the week number of a date
+const getWeekNumber = (date: Date): number => {
+  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
 };
 
 // Group reports by hour for the time of day analysis

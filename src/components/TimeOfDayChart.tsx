@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getReportsByHour, CrimeReport } from '@/utils/data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 interface TimeOfDayChartProps {
   reports: CrimeReport[];
@@ -10,7 +12,30 @@ interface TimeOfDayChartProps {
 }
 
 const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) => {
-  const chartData = getReportsByHour(reports);
+  // State for filters
+  const [selectedIncidentTypes, setSelectedIncidentTypes] = useState<string[]>([]);
+  const [selectedSeverity, setSelectedSeverity] = useState<string>('');
+
+  // Get unique incident types
+  const incidentTypes = Array.from(new Set(reports.map(report => report.incident_type)));
+  const severityLevels = ['Low', 'Medium', 'High', 'Critical'];
+
+  // Filter reports based on selected filters
+  const filteredReports = reports.filter(report => {
+    // Filter by incident type
+    if (selectedIncidentTypes.length > 0 && !selectedIncidentTypes.includes(report.incident_type)) {
+      return false;
+    }
+
+    // Filter by severity
+    if (selectedSeverity && report.incident_severity !== selectedSeverity) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const chartData = getReportsByHour(filteredReports);
 
   // Format hours to be more readable
   const formattedData = chartData.map(item => ({
@@ -22,6 +47,51 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
     <Card className={className}>
       <CardHeader>
         <CardTitle>Incidents by Time of Day</CardTitle>
+        <div className="flex flex-wrap gap-2 mt-2">
+          <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Severity" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Severities</SelectItem>
+              {severityLevels.map(level => (
+                <SelectItem key={level} value={level}>{level}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={selectedIncidentTypes.length > 0 ? selectedIncidentTypes[0] : ""}
+            onValueChange={(value) => {
+              if (value === "") {
+                setSelectedIncidentTypes([]);
+              } else {
+                setSelectedIncidentTypes([value]);
+              }
+            }}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Incident Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Types</SelectItem>
+              {incidentTypes.map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {/* Reset button */}
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setSelectedIncidentTypes([]);
+              setSelectedSeverity('');
+            }}
+          >
+            Reset Filters
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="h-72">
         <ResponsiveContainer width="100%" height="100%">
