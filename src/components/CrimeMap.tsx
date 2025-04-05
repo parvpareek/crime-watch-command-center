@@ -64,7 +64,7 @@ const MapView = ({ center }: { center: [number, number] }) => {
   const map = useMap();
   
   useEffect(() => {
-    map.setView(center);
+    map.setView(center, 13);
   }, [center, map]);
   
   return null;
@@ -110,14 +110,9 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
     <div className="crime-map-container">
       <MapContainer
         style={{ height: "100%", width: "100%" }}
-        zoom={13}
-        whenCreated={(mapInstance) => {
-          mapInstance.setView(center, 13);
-        }}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         <MapView center={center} />
         
