@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Drawer,
   DrawerClose,
@@ -11,17 +11,45 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { CrimeReport, formatDate, getCrimeCategory } from "@/utils/data";
-import { X } from "lucide-react";
+import { CheckCircle, Download, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReportDetailProps {
   report: CrimeReport | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onStatusUpdate?: (report: CrimeReport, newStatus: string) => void;
 }
 
-const ReportDetail: React.FC<ReportDetailProps> = ({ report, open, onOpenChange }) => {
+const ReportDetail: React.FC<ReportDetailProps> = ({ 
+  report, 
+  open, 
+  onOpenChange,
+  onStatusUpdate 
+}) => {
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
   if (!report) return null;
 
   const category = getCrimeCategory(report.incident_type);
@@ -34,6 +62,42 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report, open, onOpenChange 
       case "Medium": return "secondary";
       case "Low": 
       default: return "outline";
+    }
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!report || !newStatus) return;
+
+    setIsUpdating(true);
+    try {
+      const { data, error } = await supabase
+        .from('crime_report')
+        .update({ status: newStatus })
+        .eq('id', report.id);
+        
+      if (error) throw error;
+      
+      toast.success(`Report status updated to ${newStatus}`, {
+        description: `Report #${report.id} status has been successfully updated.`,
+        action: {
+          label: "Dismiss",
+          onClick: () => {},
+        },
+      });
+
+      // Update the report in the parent component
+      if (onStatusUpdate) {
+        onStatusUpdate(report, newStatus);
+      }
+      
+      setIsUpdateDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating report status:', error);
+      toast.error('Failed to update report status', {
+        description: 'Please try again or contact support if the issue persists.',
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -142,8 +206,53 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report, open, onOpenChange 
           </div>
 
           <DrawerFooter className="flex flex-row gap-2 justify-end">
-            <Button variant="outline">Export Report</Button>
-            <Button>Update Status</Button>
+            <Button variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Export Report
+            </Button>
+            
+            <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Update Status
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Update Report Status</DialogTitle>
+                  <DialogDescription>
+                    Change the status of incident report #{report.id}.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="py-4">
+                  <Select value={newStatus} onValueChange={setNewStatus}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select new status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="New">New</SelectItem>
+                      <SelectItem value="Under Investigation">Under Investigation</SelectItem>
+                      <SelectItem value="Resolved">Resolved</SelectItem>
+                      <SelectItem value="False Report">False Report</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsUpdateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleStatusUpdate}
+                    disabled={isUpdating || !newStatus}
+                  >
+                    {isUpdating ? "Updating..." : "Update Status"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </DrawerFooter>
         </div>
       </DrawerContent>

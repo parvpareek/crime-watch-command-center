@@ -1,10 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getReportsByHour, CrimeReport } from '@/utils/data';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { useFilters } from '@/contexts/FilterContext';
 
 interface TimeOfDayChartProps {
   reports: CrimeReport[];
@@ -12,28 +11,50 @@ interface TimeOfDayChartProps {
 }
 
 const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) => {
-  // State for filters
-  const [selectedIncidentTypes, setSelectedIncidentTypes] = useState<string[]>([]);
-  const [selectedSeverity, setSelectedSeverity] = useState<string>('');
+  const { 
+    dateRange,
+    selectedIncidentTypes,
+    selectedStatuses,
+    applyFilters,
+    setApplyFilters
+  } = useFilters();
 
-  // Get unique incident types
-  const incidentTypes = Array.from(new Set(reports.map(report => report.incident_type)));
-  const severityLevels = ['Low', 'Medium', 'High', 'Critical'];
-
-  // Filter reports based on selected filters
+  // Filter reports based on global filters
   const filteredReports = reports.filter(report => {
+    // Filter by date range
+    if (dateRange[0] && dateRange[1]) {
+      const reportDate = new Date(report.date);
+      const startDate = new Date(dateRange[0]);
+      const endDate = new Date(dateRange[1]);
+      
+      // Set time to midnight for proper date comparison
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      
+      if (reportDate < startDate || reportDate > endDate) {
+        return false;
+      }
+    }
+
     // Filter by incident type
     if (selectedIncidentTypes.length > 0 && !selectedIncidentTypes.includes(report.incident_type)) {
       return false;
     }
 
-    // Filter by severity
-    if (selectedSeverity && report.incident_severity !== selectedSeverity) {
+    // Filter by status
+    if (selectedStatuses.length > 0 && !selectedStatuses.includes(report.status)) {
       return false;
     }
 
     return true;
   });
+
+  // Reset the apply filters flag after applying
+  useEffect(() => {
+    if (applyFilters) {
+      setApplyFilters(false);
+    }
+  }, [applyFilters, setApplyFilters]);
 
   const chartData = getReportsByHour(filteredReports);
 
@@ -47,51 +68,6 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
     <Card className={className}>
       <CardHeader>
         <CardTitle className="text-lg">Incidents by Time of Day</CardTitle>
-        <div className="flex flex-wrap gap-2 mt-2">
-          <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Severity" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all_severities">All Severities</SelectItem>
-              {severityLevels.map(level => (
-                <SelectItem key={level} value={level}>{level}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select 
-            value={selectedIncidentTypes.length > 0 ? selectedIncidentTypes[0] : "all_types"}
-            onValueChange={(value) => {
-              if (value === "all_types") {
-                setSelectedIncidentTypes([]);
-              } else {
-                setSelectedIncidentTypes([value]);
-              }
-            }}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Incident Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all_types">All Types</SelectItem>
-              {incidentTypes.map(type => (
-                <SelectItem key={type} value={type}>{type}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          {/* Reset button */}
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              setSelectedIncidentTypes([]);
-              setSelectedSeverity('');
-            }}
-          >
-            Reset Filters
-          </Button>
-        </div>
       </CardHeader>
       <CardContent className="h-[calc(100%-7rem)] min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">

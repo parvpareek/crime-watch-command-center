@@ -19,6 +19,7 @@ export type Database = {
           location: unknown | null
           perpertrator: string | null
           report_type: string | null
+          status: string | null
           time: string | null
           user_id: number | null
         }
@@ -31,6 +32,7 @@ export type Database = {
           location?: unknown | null
           perpertrator?: string | null
           report_type?: string | null
+          status?: string | null
           time?: string | null
           user_id?: number | null
         }
@@ -43,6 +45,7 @@ export type Database = {
           location?: unknown | null
           perpertrator?: string | null
           report_type?: string | null
+          status?: string | null
           time?: string | null
           user_id?: number | null
         }
