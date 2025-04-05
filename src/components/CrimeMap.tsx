@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import { toast } from "sonner";
 import { CrimeReport, getCrimeCategory } from '@/utils/data';
@@ -75,6 +75,14 @@ interface CrimeMapProps {
   onReportSelect?: (report: CrimeReport) => void;
 }
 
+// Import Marker separately and create a custom marker component to work around the TypeScript issue
+import { Marker as LeafletMarker } from 'react-leaflet';
+
+// Create a wrapper component for Marker that accepts the icon prop
+const Marker = (props: any) => {
+  return <LeafletMarker {...props} />;
+};
+
 const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
   // Default center at Surat, Gujarat, India
   const [center, setCenter] = useState<[number, number]>([21.1702, 72.8311]);
@@ -133,10 +141,7 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
                   report.location.coordinates[1],
                   report.location.coordinates[0]
                 ]}
-                // Fixed the TypeScript error by using the `icon` prop as an option to the Leaflet Marker
-                // The `as any` casting bypasses TypeScript's type checking for this prop
-                // This is necessary because the type definitions don't match the actual API
-                icon={icon as any}
+                icon={icon}
                 eventHandlers={{
                   click: () => handleMarkerClick(report),
                 }}
