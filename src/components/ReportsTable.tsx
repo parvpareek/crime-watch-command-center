@@ -36,6 +36,14 @@ const statusVariant: Record<string, "default" | "destructive" | "outline" | "sec
   "False Report": "destructive"
 };
 
+// Severity badge variant mapping
+const severityVariant: Record<string, "default" | "destructive" | "outline" | "secondary"> = {
+  "Critical": "destructive",
+  "High": "default",
+  "Medium": "secondary",
+  "Low": "outline"
+};
+
 const ReportsTable: React.FC<ReportsTableProps> = ({ reports, onReportSelect, className }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,7 +53,8 @@ const ReportsTable: React.FC<ReportsTableProps> = ({ reports, onReportSelect, cl
   const filteredReports = reports.filter(report => 
     report.incident_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
     report.id.toString().includes(searchTerm) ||
-    report.details.toLowerCase().includes(searchTerm.toLowerCase())
+    report.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    report.status.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Paginate reports
@@ -63,7 +72,7 @@ const ReportsTable: React.FC<ReportsTableProps> = ({ reports, onReportSelect, cl
   // Export to CSV
   const exportToCSV = () => {
     // Create headers
-    const headers = ['ID', 'Date', 'Time', 'Incident Type', 'Location', 'Status', 'Details'];
+    const headers = ['ID', 'Date', 'Time', 'Incident Type', 'Location', 'Status', 'Severity', 'Details'];
     
     // Format report data for CSV
     const csvData = filteredReports.map(report => [
@@ -72,7 +81,8 @@ const ReportsTable: React.FC<ReportsTableProps> = ({ reports, onReportSelect, cl
       report.time,
       report.incident_type,
       `${report.location.coordinates[1]}, ${report.location.coordinates[0]}`,
-      report.status || 'New',
+      report.status,
+      report.incident_severity,
       report.details
     ]);
     
@@ -125,6 +135,7 @@ const ReportsTable: React.FC<ReportsTableProps> = ({ reports, onReportSelect, cl
                 <TableHead>Date</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Incident Type</TableHead>
+                <TableHead>Severity</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Details</TableHead>
               </TableRow>
@@ -142,8 +153,13 @@ const ReportsTable: React.FC<ReportsTableProps> = ({ reports, onReportSelect, cl
                     <TableCell>{report.time.substring(0, 5)}</TableCell>
                     <TableCell>{report.incident_type}</TableCell>
                     <TableCell>
-                      <Badge variant={statusVariant[report.status || "New"]} className="text-xs">
-                        {report.status || "New"}
+                      <Badge variant={severityVariant[report.incident_severity]} className="text-xs">
+                        {report.incident_severity}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[report.status]} className="text-xs">
+                        {report.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate">
@@ -153,7 +169,7 @@ const ReportsTable: React.FC<ReportsTableProps> = ({ reports, onReportSelect, cl
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
+                  <TableCell colSpan={7} className="text-center py-4">
                     No reports found
                   </TableCell>
                 </TableRow>

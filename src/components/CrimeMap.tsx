@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import { toast } from 'sonner';
+import { toast } from "sonner";
 import { CrimeReport, getCrimeCategory } from '@/utils/data';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -76,8 +76,8 @@ interface CrimeMapProps {
 }
 
 const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
-  // Default center at New York City
-  const [center, setCenter] = useState<[number, number]>([40.7128, -74.006]);
+  // Default center at Surat, Gujarat, India
+  const [center, setCenter] = useState<[number, number]>([21.1702, 72.8311]);
   const [selectedReport, setSelectedReport] = useState<CrimeReport | null>(null);
 
   useEffect(() => {
@@ -106,6 +106,12 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
     }
   };
 
+  // Get marker icon based on crime category and severity
+  const getMarkerIcon = (report: CrimeReport) => {
+    const category = getCrimeCategory(report.incident_type);
+    return crimeIcons[category as keyof typeof crimeIcons];
+  };
+
   return (
     <div className="crime-map-container">
       <MapContainer
@@ -124,6 +130,7 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
                 report.location.coordinates[1],
                 report.location.coordinates[0]
               ]}
+              icon={getMarkerIcon(report)}
               eventHandlers={{
                 click: () => handleMarkerClick(report),
               }}
@@ -134,7 +141,8 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
                   <p className="text-sm">Date: {new Date(report.date).toLocaleDateString()}</p>
                   <p className="text-sm">Time: {report.time.substring(0, 5)}</p>
                   <p className="text-sm">ID: {report.id}</p>
-                  <p className="text-sm">Status: {report.status || 'New'}</p>
+                  <p className="text-sm">Status: {report.status}</p>
+                  <p className="text-sm">Severity: {report.incident_severity}</p>
                 </div>
               </Popup>
             </Marker>

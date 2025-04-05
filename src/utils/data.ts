@@ -16,7 +16,8 @@ export interface CrimeReport {
   user_id: number;
   report_type: string;
   incident_type: string;
-  status?: "New" | "Under Investigation" | "Resolved" | "False Report";
+  status: "New" | "Under Investigation" | "Resolved" | "False Report";
+  incident_severity: "Low" | "Medium" | "High" | "Critical";
 }
 
 export interface User {
@@ -35,18 +36,22 @@ export interface User {
   language: string;
 }
 
-// Generate mock data for development
+// Generate mock data for development - centered in Surat, Gujarat, India
 export const generateMockData = (): CrimeReport[] => {
-  // Define common incident types
+  // Define common incident types for India
   const incidentTypes = [
-    "Assault", 
-    "Burglary", 
     "Theft", 
-    "Drug Offense", 
-    "Vandalism", 
+    "Vehicle Theft",
+    "Burglary", 
+    "Robbery",
+    "Assault", 
+    "Harassment",
     "Fraud", 
     "Public Disturbance", 
-    "Robbery"
+    "Drug Offense",
+    "Traffic Violation",
+    "Property Damage",
+    "Eve Teasing"
   ];
   
   // Define statuses
@@ -56,10 +61,19 @@ export const generateMockData = (): CrimeReport[] => {
     "Resolved", 
     "False Report"
   ];
+  
+  // Define severity levels
+  const severityLevels: ("Low" | "Medium" | "High" | "Critical")[] = [
+    "Low",
+    "Medium",
+    "High",
+    "Critical"
+  ];
 
-  // Define city center coordinates (default to a generic US location)
-  const centerLat = 40.7128;
-  const centerLng = -74.006;
+  // Define Surat city center coordinates
+  // Surat, Gujarat, India approximate coordinates
+  const centerLat = 21.1702;
+  const centerLng = 72.8311;
   
   // Generate 100 random crime reports
   return Array.from({ length: 100 }, (_, i) => {
@@ -71,9 +85,35 @@ export const generateMockData = (): CrimeReport[] => {
     const hours = Math.floor(Math.random() * 24);
     const minutes = Math.floor(Math.random() * 60);
     
-    // Random location within ~5km of the center point
-    const lat = centerLat + (Math.random() - 0.5) * 0.1;
-    const lng = centerLng + (Math.random() - 0.5) * 0.1;
+    // Random location within ~3km of Surat city center
+    const lat = centerLat + (Math.random() - 0.5) * 0.05;
+    const lng = centerLng + (Math.random() - 0.5) * 0.05;
+    
+    // Generate mock Indian names for perpetrators
+    const indianFirstNames = ["Raj", "Amit", "Rahul", "Vikram", "Sunil", "Ajay", "Unknown", "Unidentified"];
+    const indianLastNames = ["Sharma", "Patel", "Singh", "Kumar", "Verma", "Shah", "Suspect"];
+    
+    const randomFirstName = indianFirstNames[Math.floor(Math.random() * indianFirstNames.length)];
+    const randomLastName = indianLastNames[Math.floor(Math.random() * indianLastNames.length)];
+    const perpetrator = Math.random() > 0.6 ? "Unknown" : `${randomFirstName} ${randomLastName}`;
+    
+    // Generate more realistic incident details
+    const incidentDetails = [
+      "Victim reported their mobile phone was snatched by two individuals on a motorcycle.",
+      "Store owner reported break-in and theft of cash and electronics.",
+      "Complainant reported harassment while walking home from work.",
+      "Vehicle parked outside residence was damaged overnight.",
+      "Resident reported suspicious activity in the neighborhood.",
+      "Personal belongings stolen from apartment.",
+      "Victim reported being followed by unknown individuals.",
+      "Shop owner reported counterfeit currency used for purchase.",
+      "Verbal altercation escalated to physical assault.",
+      "Complainant reported online fraud and money loss."
+    ];
+    
+    const chosenIncidentType = incidentTypes[Math.floor(Math.random() * incidentTypes.length)];
+    const chosenStatus = statuses[Math.floor(Math.random() * statuses.length)];
+    const chosenSeverity = severityLevels[Math.floor(Math.random() * severityLevels.length)];
     
     return {
       id: i + 1,
@@ -84,12 +124,53 @@ export const generateMockData = (): CrimeReport[] => {
       },
       date: date.toISOString().split('T')[0],
       time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`,
-      perpetrator: Math.random() > 0.7 ? "Unknown" : `Suspect ${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
-      details: `Mock crime report ${i + 1}`,
+      perpetrator: perpetrator,
+      details: incidentDetails[Math.floor(Math.random() * incidentDetails.length)],
       user_id: Math.floor(Math.random() * 20) + 1,
-      report_type: "Citizen Report",
-      incident_type: incidentTypes[Math.floor(Math.random() * incidentTypes.length)],
-      status: statuses[Math.floor(Math.random() * statuses.length)]
+      report_type: Math.random() > 0.3 ? "Citizen Report" : "Police Report",
+      incident_type: chosenIncidentType,
+      status: chosenStatus,
+      incident_severity: chosenSeverity
+    };
+  });
+};
+
+// Generate mock user data for Surat, Gujarat
+export const generateMockUsers = (): User[] => {
+  // Common Indian names
+  const firstNames = ["Raj", "Amit", "Rahul", "Priya", "Neha", "Anjali", "Vikram", "Sanjay", "Kavita", "Deepika"];
+  const lastNames = ["Sharma", "Patel", "Shah", "Singh", "Kumar", "Verma", "Desai", "Mehta", "Joshi", "Gandhi"];
+  
+  // Areas in Surat
+  const areas = ["Adajan", "City Light", "Vesu", "Althan", "Athwa", "Dumas", "Katargam", "Varachha", "Udhna", "Piplod"];
+  
+  // Languages common in Gujarat
+  const languages = ["Gujarati", "Hindi", "English"];
+  
+  return Array.from({ length: 20 }, (_, i) => {
+    // Create a random registration date within the last year
+    const created = new Date();
+    created.setDate(created.getDate() - Math.floor(Math.random() * 365));
+    
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const area = areas[Math.floor(Math.random() * areas.length)];
+    const language = languages[Math.floor(Math.random() * languages.length)];
+    
+    return {
+      id: i + 1,
+      created_at: created.toISOString(),
+      first_name: firstName,
+      last_name: lastName,
+      address: `${Math.floor(Math.random() * 999) + 1}, ${area} Road, Surat`,
+      pincode: 395007,
+      state: "Gujarat",
+      city: "Surat",
+      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${Math.floor(Math.random() * 999) + 1}@example.com`,
+      phone_number: `+91 ${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+      points: Math.floor(Math.random() * 500),
+      level: Math.floor(Math.random() * 5) + 1,
+      language: language
     };
   });
 };
@@ -111,6 +192,21 @@ export const fetchCrimeReports = async (): Promise<CrimeReport[]> => {
   }
 };
 
+// Function to fetch users from Supabase
+export const fetchUsers = async (): Promise<User[]> => {
+  try {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Return mock data
+    return generateMockUsers();
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    toast.error("Failed to fetch users");
+    return [];
+  }
+};
+
 // Get crime category for styling/filtering
 export const getCrimeCategory = (incidentType: string): string => {
   incidentType = incidentType.toLowerCase();
@@ -119,7 +215,7 @@ export const getCrimeCategory = (incidentType: string): string => {
     return 'violent';
   }
   
-  if (['theft', 'burglary', 'vandalism', 'fraud'].some(type => incidentType.includes(type))) {
+  if (['theft', 'burglary', 'vandalism', 'fraud', 'property'].some(type => incidentType.includes(type))) {
     return 'property';
   }
   
@@ -127,7 +223,7 @@ export const getCrimeCategory = (incidentType: string): string => {
     return 'drugs';
   }
   
-  if (['disturbance', 'public', 'disorder', 'noise'].some(type => incidentType.includes(type))) {
+  if (['disturbance', 'public', 'disorder', 'noise', 'traffic', 'harassment'].some(type => incidentType.includes(type))) {
     return 'public';
   }
   
@@ -252,4 +348,25 @@ export const getReportsByStatus = (reports: CrimeReport[]): { status: string; co
   
   return Object.entries(statusCounts)
     .map(([status, count]) => ({ status, count }));
+};
+
+// Group reports by severity
+export const getReportsBySeverity = (reports: CrimeReport[]): { severity: string; count: number }[] => {
+  const severityCounts: Record<string, number> = {
+    "Low": 0,
+    "Medium": 0,
+    "High": 0,
+    "Critical": 0
+  };
+  
+  reports.forEach(report => {
+    if (report.incident_severity) {
+      severityCounts[report.incident_severity] = (severityCounts[report.incident_severity] || 0) + 1;
+    } else {
+      severityCounts["Medium"] += 1; // Default to "Medium" if severity is not set
+    }
+  });
+  
+  return Object.entries(severityCounts)
+    .map(([severity, count]) => ({ severity, count }));
 };

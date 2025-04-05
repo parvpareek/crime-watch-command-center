@@ -26,6 +26,17 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report, open, onOpenChange 
 
   const category = getCrimeCategory(report.incident_type);
 
+  // Get badge variant based on severity
+  const getSeverityVariant = (severity: string): "default" | "destructive" | "outline" | "secondary" => {
+    switch(severity) {
+      case "Critical": return "destructive";
+      case "High": return "default";
+      case "Medium": return "secondary";
+      case "Low": 
+      default: return "outline";
+    }
+  };
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
@@ -71,8 +82,21 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report, open, onOpenChange 
                   report.status === "False Report" ? "destructive" :
                   "default"
                 }>
-                  {report.status || "New"}
+                  {report.status}
                 </Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Severity</h4>
+                <Badge variant={getSeverityVariant(report.incident_severity)}>
+                  {report.incident_severity}
+                </Badge>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Report Type</h4>
+                <p>{report.report_type}</p>
               </div>
             </div>
 
@@ -81,6 +105,7 @@ const ReportDetail: React.FC<ReportDetailProps> = ({ report, open, onOpenChange 
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Location</h4>
               <p>Coordinates: {report.location.coordinates[1].toFixed(6)}, {report.location.coordinates[0].toFixed(6)}</p>
+              <p>Surat, Gujarat - 395007</p>
             </div>
 
             <Separator />
