@@ -53,7 +53,7 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
               <SelectValue placeholder="Severity" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Severities</SelectItem>
+              <SelectItem value="all_severities">All Severities</SelectItem>
               {severityLevels.map(level => (
                 <SelectItem key={level} value={level}>{level}</SelectItem>
               ))}
@@ -61,9 +61,9 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
           </Select>
 
           <Select 
-            value={selectedIncidentTypes.length > 0 ? selectedIncidentTypes[0] : ""}
+            value={selectedIncidentTypes.length > 0 ? selectedIncidentTypes[0] : "all_types"}
             onValueChange={(value) => {
-              if (value === "") {
+              if (value === "all_types") {
                 setSelectedIncidentTypes([]);
               } else {
                 setSelectedIncidentTypes([value]);
@@ -74,7 +74,7 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
               <SelectValue placeholder="Incident Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all_types">All Types</SelectItem>
               {incidentTypes.map(type => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}

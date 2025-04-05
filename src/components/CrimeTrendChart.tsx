@@ -105,7 +105,7 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
               <SelectValue placeholder="Severity" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Severities</SelectItem>
+              <SelectItem value="all_severities">All Severities</SelectItem>
               {severityLevels.map(level => (
                 <SelectItem key={level} value={level}>{level}</SelectItem>
               ))}
@@ -113,9 +113,9 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
           </Select>
 
           <Select 
-            value={selectedIncidentTypes.length > 0 ? selectedIncidentTypes[0] : ""}
+            value={selectedIncidentTypes.length > 0 ? selectedIncidentTypes[0] : "all_types"}
             onValueChange={(value) => {
-              if (value === "") {
+              if (value === "all_types") {
                 setSelectedIncidentTypes([]);
               } else {
                 setSelectedIncidentTypes([value]);
@@ -126,7 +126,7 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
               <SelectValue placeholder="Incident Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all_types">All Types</SelectItem>
               {incidentTypes.map(type => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}
@@ -153,8 +153,23 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
             <PopoverContent className="w-auto p-0">
               <Calendar
                 mode="range"
-                selected={dateRange}
-                onSelect={setDateRange}
+                selected={{
+                  from: dateRange.from,
+                  to: dateRange.to
+                }}
+                onSelect={(range) => {
+                  if (range) {
+                    setDateRange({
+                      from: range.from,
+                      to: range.to
+                    });
+                  } else {
+                    setDateRange({
+                      from: undefined,
+                      to: undefined
+                    });
+                  }
+                }}
                 initialFocus
                 className="p-3 pointer-events-auto"
               />
