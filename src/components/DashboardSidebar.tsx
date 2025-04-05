@@ -25,7 +25,7 @@ interface DashboardSidebarProps {
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ className }) => {
   return (
-    <Sidebar defaultCollapsed={false} className={cn(className)}>
+    <Sidebar className={cn(className)}>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2">
           <Shield size={24} className="text-primary" />
@@ -34,23 +34,23 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ className }) => {
       </SidebarHeader>
       <SidebarContent>
         <div className="flex flex-col gap-1 px-2 py-2">
-          <Button variant="sidebar" className="justify-start">
+          <Button variant="ghost" className="justify-start">
             <Home className="mr-2 h-4 w-4" />
             <span>Dashboard</span>
           </Button>
-          <Button variant="sidebar" className="justify-start">
+          <Button variant="ghost" className="justify-start">
             <Map className="mr-2 h-4 w-4" />
             <span>Map View</span>
           </Button>
-          <Button variant="sidebar" className="justify-start">
+          <Button variant="ghost" className="justify-start">
             <AlertTriangle className="mr-2 h-4 w-4" />
             <span>Incidents</span>
           </Button>
-          <Button variant="sidebar" className="justify-start">
+          <Button variant="ghost" className="justify-start">
             <BarChart2 className="mr-2 h-4 w-4" />
             <span>Analytics</span>
           </Button>
-          <Button variant="sidebar" className="justify-start">
+          <Button variant="ghost" className="justify-start">
             <Users className="mr-2 h-4 w-4" />
             <span>Users</span>
           </Button>
@@ -58,7 +58,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ className }) => {
       </SidebarContent>
       <SidebarFooter>
         <div className="px-3 py-2">
-          <Button variant="sidebar" className="justify-start">
+          <Button variant="ghost" className="justify-start">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </Button>

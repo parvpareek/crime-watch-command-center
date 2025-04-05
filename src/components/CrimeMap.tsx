@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { CrimeReport, getCrimeCategory } from '@/utils/data';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -109,13 +109,15 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
   return (
     <div className="crime-map-container">
       <MapContainer
-        center={center}
-        zoom={13}
         style={{ height: "100%", width: "100%" }}
+        zoom={13}
+        whenCreated={(mapInstance) => {
+          mapInstance.setView(center, 13);
+        }}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         <MapView center={center} />
         
@@ -127,7 +129,6 @@ const CrimeMap: React.FC<CrimeMapProps> = ({ reports, onReportSelect }) => {
                 report.location.coordinates[1],
                 report.location.coordinates[0]
               ]}
-              icon={crimeIcons[getCrimeCategory(report.incident_type)]}
               eventHandlers={{
                 click: () => handleMarkerClick(report),
               }}
