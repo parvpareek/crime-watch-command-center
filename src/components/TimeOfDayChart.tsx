@@ -46,7 +46,7 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Incidents by Time of Day</CardTitle>
+        <CardTitle className="text-lg">Incidents by Time of Day</CardTitle>
         <div className="flex flex-wrap gap-2 mt-2">
           <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
             <SelectTrigger className="w-[120px]">
@@ -93,34 +93,48 @@ const TimeOfDayChart: React.FC<TimeOfDayChartProps> = ({ reports, className }) =
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="h-72">
+      <CardContent className="h-[calc(100%-7rem)] min-h-[250px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={formattedData}
             margin={{
-              top: 5,
-              right: 30,
-              left: 0,
+              top: 10,
+              right: 20,
+              left: 5,
               bottom: 20,
             }}
-            barSize={20}
+            barSize={24}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
             <XAxis 
               dataKey="formattedHour" 
               scale="point" 
               padding={{ left: 10, right: 10 }}
               tick={{ fill: '#9CA3AF', fontSize: 12 }}
+              tickMargin={10}
             />
-            <YAxis tick={{ fill: '#9CA3AF', fontSize: 12 }} />
+            <YAxis 
+              tick={{ fill: '#9CA3AF', fontSize: 12 }}
+              tickMargin={8}
+              width={30}
+            />
             <Tooltip
               contentStyle={{
                 backgroundColor: 'rgba(17, 24, 39, 0.9)',
                 borderColor: '#374151',
                 color: '#F9FAFB',
+                borderRadius: '6px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
               }}
+              formatter={(value) => [`${value} incidents`, 'Count']}
+              labelFormatter={(label) => `Time: ${label}`}
             />
-            <Bar dataKey="count" fill="#EC4899" radius={[4, 4, 0, 0]} />
+            <Bar 
+              dataKey="count" 
+              fill="#EC4899" 
+              radius={[4, 4, 0, 0]} 
+              maxBarSize={50}
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

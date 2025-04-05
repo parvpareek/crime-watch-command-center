@@ -1,7 +1,5 @@
 
 import React, { useEffect, useState } from 'react';
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import DashboardSidebar from '@/components/DashboardSidebar';
 import CrimeMap from '@/components/CrimeMap';
 import KpiCard from '@/components/KpiCard';
 import CrimeTrendChart from '@/components/CrimeTrendChart';
@@ -63,94 +61,87 @@ const Dashboard: React.FC = () => {
   const investigatingReports = statusCounts.find(s => s.status === 'Under Investigation')?.count || 0;
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <DashboardSidebar />
-        <main className="flex-1 flex flex-col">
-          <div className="flex items-center p-4 border-b">
-            <SidebarTrigger />
-            <h1 className="text-xl font-semibold ml-2">Crime Watch Command Center</h1>
-            <div className="ml-auto flex items-center gap-2">
-              {/* Placeholder for user menu, notifications, etc. */}
+    <div className="min-h-screen flex flex-col w-full">
+      <header className="flex items-center p-4 border-b bg-background">
+        <h1 className="text-xl font-semibold">Crime Watch Command Center</h1>
+        <div className="ml-auto flex items-center gap-2">
+          {/* Placeholder for user menu, notifications, etc. */}
+        </div>
+      </header>
+      
+      <main className="flex-1 overflow-auto p-4">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-pulse-soft">Loading dashboard data...</div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <KpiCard 
+                title="Today's Reports" 
+                value={todayCount}
+                icon={<FileText className="h-4 w-4" />} 
+              />
+              <KpiCard 
+                title="Last 7 Days" 
+                value={lastWeekCount} 
+                changeType={parseFloat(weeklyChange) > 0 ? 'increase' : parseFloat(weeklyChange) < 0 ? 'decrease' : 'neutral'}
+                changeValue={`${Math.abs(parseFloat(weeklyChange))}%`}
+                description="vs previous week"
+                icon={<BarChart2 className="h-4 w-4" />} 
+              />
+              <KpiCard 
+                title="New Reports" 
+                value={newReports} 
+                description="awaiting review"
+                icon={<AlertTriangle className="h-4 w-4" />} 
+              />
+              <KpiCard 
+                title="Under Investigation" 
+                value={investigatingReports} 
+                description="active cases"
+                icon={<Clock className="h-4 w-4" />} 
+              />
+            </div>
+
+            {/* Temporal Visualization - Now Larger and Centered */}
+            <div className="w-full h-[500px]">
+              <CrimeTrendChart reports={reports} className="h-full" />
+            </div>
+
+            {/* Map Section */}
+            <div className="w-full h-[500px]">
+              <CrimeMap 
+                reports={reports} 
+                onReportSelect={handleReportSelect} 
+              />
+            </div>
+            
+            {/* Charts Section - Two column grid for smaller visualizations */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <TimeOfDayChart reports={reports} className="h-[400px]" />
+              <IncidentTypeChart reports={reports} className="h-[400px]" />
+            </div>
+
+            {/* Reports Table - Full width */}
+            <div className="w-full">
+              <ReportsTable 
+                reports={reports} 
+                onReportSelect={handleReportSelect} 
+              />
             </div>
           </div>
-          <div className="flex-1 overflow-auto p-4">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-pulse-soft">Loading dashboard data...</div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                  <KpiCard 
-                    title="Today's Reports" 
-                    value={todayCount}
-                    icon={<FileText className="h-4 w-4" />} 
-                  />
-                  <KpiCard 
-                    title="Last 7 Days" 
-                    value={lastWeekCount} 
-                    changeType={parseFloat(weeklyChange) > 0 ? 'increase' : parseFloat(weeklyChange) < 0 ? 'decrease' : 'neutral'}
-                    changeValue={`${Math.abs(parseFloat(weeklyChange))}%`}
-                    description="vs previous week"
-                    icon={<BarChart2 className="h-4 w-4" />} 
-                  />
-                  <KpiCard 
-                    title="New Reports" 
-                    value={newReports} 
-                    description="awaiting review"
-                    icon={<AlertTriangle className="h-4 w-4" />} 
-                  />
-                  <KpiCard 
-                    title="Under Investigation" 
-                    value={investigatingReports} 
-                    description="active cases"
-                    icon={<Clock className="h-4 w-4" />} 
-                  />
-                </div>
-
-                {/* Map Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2 h-[500px]">
-                    <CrimeMap 
-                      reports={reports} 
-                      onReportSelect={handleReportSelect} 
-                    />
-                  </div>
-                  
-                  {/* Charts Section */}
-                  <div className="space-y-4">
-                    <CrimeTrendChart reports={reports} />
-                    <IncidentTypeChart reports={reports} />
-                  </div>
-                </div>
-
-                {/* Time Analysis and Reports Table */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-1">
-                    <TimeOfDayChart reports={reports} />
-                  </div>
-                  <div className="lg:col-span-2">
-                    <ReportsTable 
-                      reports={reports} 
-                      onReportSelect={handleReportSelect} 
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
-        
-        {/* Report Detail Drawer */}
-        <ReportDetail 
-          report={selectedReport} 
-          open={drawerOpen} 
-          onOpenChange={setDrawerOpen} 
-        />
-      </div>
-    </SidebarProvider>
+        )}
+      </main>
+      
+      {/* Report Detail Drawer */}
+      <ReportDetail 
+        report={selectedReport} 
+        open={drawerOpen} 
+        onOpenChange={setDrawerOpen} 
+      />
+    </div>
   );
 };
 

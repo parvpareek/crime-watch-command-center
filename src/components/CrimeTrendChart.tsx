@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { getReportsByDate, CrimeReport } from '@/utils/data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -101,8 +101,8 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Crime Trend Over Time</CardTitle>
-        <div className="flex flex-wrap gap-2 mt-2">
+        <CardTitle className="text-2xl">Crime Trend Over Time</CardTitle>
+        <div className="flex flex-wrap gap-2 mt-4">
           <Select value={timeFrame} onValueChange={(value) => setTimeFrame(value as 'day' | 'week' | 'month')}>
             <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Time Frame" />
@@ -204,35 +204,50 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="h-72">
+      <CardContent className="h-[calc(100%-8rem)] min-h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
+          <AreaChart
             data={formattedData}
             margin={{
-              top: 5,
+              top: 10,
               right: 30,
-              left: 0,
-              bottom: 20,
+              left: 10,
+              bottom: 30,
             }}
-            barSize={20}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
             <XAxis 
               dataKey="formattedDate" 
-              scale="point" 
               padding={{ left: 10, right: 10 }}
               tick={{ fill: '#9CA3AF', fontSize: 12 }}
+              tickMargin={10}
             />
-            <YAxis tick={{ fill: '#9CA3AF', fontSize: 12 }} />
+            <YAxis 
+              tick={{ fill: '#9CA3AF', fontSize: 12 }}
+              tickMargin={10}
+              width={40}
+            />
             <Tooltip
               contentStyle={{
                 backgroundColor: 'rgba(17, 24, 39, 0.9)',
                 borderColor: '#374151',
                 color: '#F9FAFB',
+                borderRadius: '6px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
               }}
+              formatter={(value) => [`${value} incidents`, 'Count']}
+              labelFormatter={(label) => `Date: ${label}`}
             />
-            <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Area 
+              type="monotone" 
+              dataKey="count" 
+              stroke="#3B82F6" 
+              fill="#3B82F6" 
+              fillOpacity={0.4}
+              strokeWidth={2}
+              activeDot={{ r: 6 }} 
+            />
+          </AreaChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
