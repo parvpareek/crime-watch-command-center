@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 
 interface CrimeTrendChartProps {
@@ -63,18 +63,32 @@ const CrimeTrendChart: React.FC<CrimeTrendChartProps> = ({ reports, className })
   const chartData = getReportsByDate(filteredReports, timeFrame);
 
   // Format the date display based on the selected time frame
-  const formatDateDisplay = (date: string) => {
-    const dateObj = new Date(date);
-    
-    switch(timeFrame) {
-      case 'day':
-        return format(dateObj, 'MMM d');
-      case 'week':
-        return `Week ${format(dateObj, 'w')}`;
-      case 'month':
-        return format(dateObj, 'MMM yyyy');
-      default:
-        return format(dateObj, 'MMM d');
+  const formatDateDisplay = (dateStr: string) => {
+    try {
+      // Different handling based on timeFrame
+      if (timeFrame === 'day') {
+        // For daily view, the date is in 'YYYY-MM-DD' format
+        return format(new Date(dateStr), 'MMM d');
+      } else if (timeFrame === 'week') {
+        // For weekly view, the date is in 'YYYY-Wxx' format (year-week)
+        // Parse the year and week number
+        const [year, weekPart] = dateStr.split('-');
+        const weekNumber = parseInt(weekPart.substring(1), 10);
+        return `Week ${weekNumber}`;
+      } else if (timeFrame === 'month') {
+        // For monthly view, the date is in 'YYYY-MM' format
+        // Parse the year and month
+        const [year, month] = dateStr.split('-');
+        // Create a date for the first day of the month
+        const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+        return format(date, 'MMM yyyy');
+      }
+      
+      // Fallback if format is unknown
+      return dateStr;
+    } catch (error) {
+      console.error("Error formatting date:", dateStr, error);
+      return "Invalid date";
     }
   };
 
