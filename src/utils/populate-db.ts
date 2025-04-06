@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
 
 // Load environment variables
 dotenv.config();
 
 // Initialize Supabase client
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase credentials');
@@ -18,10 +19,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 interface CrimeReport {
   id?: number;
   created_at: string;
-  location: {
-    type: string;
-    coordinates: [number, number];
-  };
+  latitude: number;  // Latitude coordinate
+  longitude: number; // Longitude coordinate
   date: string;
   time: string;
   perpetrator: string;
@@ -31,6 +30,7 @@ interface CrimeReport {
   incident_type: string;
   severity: string;
   status: string;
+  reporter_uuid: string; // UUID of the user who submitted the report
 }
 
 interface User {
@@ -47,6 +47,7 @@ interface User {
   points: number;
   level: number;
   language: string;
+  uuid: string;      // UUID for unique identification
 }
 
 // Generate mock users
@@ -69,6 +70,7 @@ const generateMockUsers = (): User[] => {
       created_at: created.toISOString(),
       first_name: firstName,
       last_name: lastName,
+      uuid: uuidv4(), // Generate a unique UUID for each user
       address: `${Math.floor(Math.random() * 999) + 1}, ${area} Road, Surat`,
       pincode: 395007,
       state: "Gujarat",
@@ -83,7 +85,7 @@ const generateMockUsers = (): User[] => {
 };
 
 // Generate mock crime reports
-const generateMockCrimeReports = (userIds: number[]): CrimeReport[] => {
+const generateMockCrimeReports = (users: { id: number; uuid: string }[]): CrimeReport[] => {
   const incidentTypes = [
     "Theft", "Vehicle Theft", "Burglary", "Robbery",
     "Assault", "Harassment", "Fraud", "Public Disturbance",
@@ -129,21 +131,24 @@ const generateMockCrimeReports = (userIds: number[]): CrimeReport[] => {
       "Complainant reported online fraud and money loss."
     ];
     
+    // Randomly select a user
+    const randomUserIndex = Math.floor(Math.random() * users.length);
+    const user = users[randomUserIndex];
+    
     return {
       created_at: date.toISOString(),
-      location: {
-        type: "Point",
-        coordinates: [lng, lat]
-      },
+      latitude: lat,     // Assign the latitude value
+      longitude: lng,    // Assign the longitude value
       date: date.toISOString().split('T')[0],
       time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`,
       perpetrator: perpetrator,
       details: incidentDetails[Math.floor(Math.random() * incidentDetails.length)],
-      user_id: userIds[Math.floor(Math.random() * userIds.length)],
+      user_id: user.id,
       report_type: reportTypes[Math.floor(Math.random() * reportTypes.length)],
       incident_type: incidentTypes[Math.floor(Math.random() * incidentTypes.length)],
       severity: severityLevels[Math.floor(Math.random() * severityLevels.length)],
-      status: statuses[Math.floor(Math.random() * statuses.length)]
+      status: statuses[Math.floor(Math.random() * statuses.length)],
+      reporter_uuid: user.uuid // Link the crime report to the user's UUID
     };
   });
 };
@@ -159,7 +164,7 @@ async function populateDatabase() {
     const { data: insertedUsers, error: userError } = await supabase
       .from('users')
       .insert(mockUsers)
-      .select('id');
+      .select('id, uuid');
 
     if (userError) {
       throw userError;
@@ -169,12 +174,11 @@ async function populateDatabase() {
       throw new Error('No users were inserted');
     }
 
-    const userIds = insertedUsers.map(user => user.id);
-    console.log(`Successfully inserted ${userIds.length} users`);
+    console.log(`Successfully inserted ${insertedUsers.length} users`);
 
     // Then, insert crime reports
     console.log('Inserting crime reports...');
-    const mockCrimeReports = generateMockCrimeReports(userIds);
+    const mockCrimeReports = generateMockCrimeReports(insertedUsers);
     const { error: crimeError } = await supabase
       .from('crime_report')
       .insert(mockCrimeReports);
@@ -191,5 +195,37 @@ async function populateDatabase() {
   }
 }
 
+
+async function deleteAllRecords() {
+  try {
+    // Delete all records from the "crime_report" table first (due to foreign key constraints)
+    const { error: crimeError } = await supabase
+      .from('crime_report')
+      .delete()
+      .not('id', 'is', null); // This matches all rows
+
+    if (crimeError) {
+      throw new Error(`Error deleting crime reports: ${crimeError.message}`);
+    }
+
+    // Then delete all records from the "users" table
+    const { error: usersError } = await supabase
+      .from('users')
+      .delete()
+      .not('id', 'is', null); // This matches all rows
+    
+    if (usersError) {
+      throw new Error(`Error deleting users: ${usersError.message}`);
+    }
+
+    console.log('Successfully deleted all records from both tables.');
+  } catch (error) {
+    console.error('Failed to delete records:', error);
+  }
+}
+
+
+
 // Run the population script
 populateDatabase(); 
+// deleteAllRecords();
